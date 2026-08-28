@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⛏️ CraftTarefas</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💚</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+/* ============ MINECRAFT THEME ============ */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{image-rendering:pixelated}
+body{
+  font-family:'Press Start 2P',monospace;
+  font-size:11px;color:#fff;
+  background-color:#2b1d0e;
+  background-image:
+    conic-gradient(#3a2812 25%, #33220f 0 50%, #3a2812 0 75%, #33220f 0);
+  background-size:48px 48px;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5}
+#app{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:14px}
+
+/* ---- header grass block ---- */
+header{
+  background:linear-gradient(#6b4a26,#54371a);
+  border:3px solid #000;
+  border-top:8px solid #5ea832;
+  box-shadow:inset 0 4px 0 rgba(255,255,255,.15), inset 0 -4px 0 rgba(0,0,0,.35), 0 6px 0 rgba(0,0,0,.4);
+  padding:14px 16px;display:flex;align-items:center;justify-content:space-between;
+  gap:10px;flex-wrap:wrap;margin-bottom:16px;position:relative;
+}
+h1{font-size:16px;text-shadow:3px 3px 0 #1c1c1c;color:#fff;letter-spacing:1px}
+h1 .craft{color:#7efc20}
+#splash{
+  position:absolute;right:110px;top:-14px;color:#ffff54;font-size:8px;
+  transform:rotate(-12deg);text-shadow:2px 2px 0 #3f3f00;
+  animation:splashpulse 1s infinite alternate;pointer-events:none;
+  max-width:200px;text-align:center;
+}
+@keyframes splashpulse{from{transform:rotate(-12deg) scale(1)}to{transform:rotate(-12deg) scale(1.12)}}
+
+/* ---- panels (MC inventory look) ---- */
+.mc-panel{
+  background:#c6c6c6;border:3px solid #000;color:#222;
+  box-shadow:inset 3px 3px 0 #ffffff, inset -3px -3px 0 #555555, 0 6px 0 rgba(0,0,0,.45);
+  padding:16px;margin-bottom:16px;
+}
+.mc-panel.dark{background:#3c3c3c;color:#eee;box-shadow:inset 3px 3px 0 #6a6a6a, inset -3px -3px 0 #1a1a1a, 0 6px 0 rgba(0,0,0,.45)}
+.mc-panel h2{font-size:11px;margin-bottom:12px;color:#3f3f3f;text-shadow:1px 1px 0 #fff}
+.mc-panel.dark h2{color:#7efc20;text-shadow:2px 2px 0 #123b00}
+
+/* ---- buttons ---- */
+.mc-btn{
+  font-family:'Press Start 2P',monospace;font-size:10px;cursor:pointer;
+  color:#fff;text-shadow:2px 2px 0 rgba(0,0,0,.5);
+  background:linear-gradient(#8a8a8a,#6f6f6f);
+  border:2px solid #000;padding:10px 14px;display:inline-block;text-align:center;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.35), inset -2px -3px 0 rgba(0,0,0,.4);
+  user-select:none;transition:filter .05s;
+}
+.mc-btn:hover{filter:brightness(1.15)}
+.mc-btn:active{transform:translateY(2px);box-shadow:inset 2px 2px 0 rgba(0,0,0,.3)}
+.mc-btn.green{background:linear-gradient(#6fc93f,#4d8f26)}
+.mc-btn.red{background:linear-gradient(#c94f3f,#8f2626)}
+.mc-btn.gold{background:linear-gradient(#e8c33a,#b08a12);color:#3a2c00;text-shadow:1px 1px 0 rgba(255,255,255,.4)}
+.mc-btn.small{font-size:8px;padding:7px 9px}
+.mc-btn:disabled{filter:grayscale(1) brightness(.7);cursor:not-allowed}
+.mc-btn.block{display:block;width:100%}
+
+/* ---- inputs ---- */
+.mc-input{
+  font-family:'Press Start 2P',monospace;font-size:10px;color:#eee;
+  background:#1a1a1a;border:2px solid #000;padding:10px;width:100%;
+  box-shadow:inset 2px 2px 0 rgba(0,0,0,.6);outline:none;margin-bottom:8px;
+}
+.mc-input:focus{border-color:#7efc20}
+label.lbl{font-size:8px;color:#555;display:block;margin:6px 0 4px}
+.mc-panel.dark label.lbl{color:#aaa}
+
+/* ---- stats / xp bar ---- */
+.stats{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.lv-num{font-size:26px;color:#7efc20;text-shadow:3px 3px 0 #123b00;min-width:54px;text-align:center}
+.lv-label{font-size:8px;color:#aaa;text-align:center;margin-top:4px}
+.xp-wrap{flex:1;min-width:180px}
+.xp-bar{height:16px;background:#1a1a1a;border:2px solid #000;position:relative;overflow:hidden}
+.xp-fill{height:100%;background:linear-gradient(#b6ff5e,#5ec427);box-shadow:inset 0 -5px 0 rgba(0,0,0,.25);transition:width .6s}
+.xp-text{font-size:8px;color:#ccc;margin-top:5px;text-align:right}
+.money-box{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px}
+.stat-chip{background:#2b2b2b;border:2px solid #000;padding:10px 14px;box-shadow:inset 2px 2px 0 rgba(255,255,255,.08)}
+.stat-chip .val{font-size:14px;color:#7efc20;text-shadow:2px 2px 0 #123b00}
+.stat-chip .val.money{color:#ffd740;text-shadow:2px 2px 0 #4a3600}
+.stat-chip .cap{font-size:7px;color:#888;margin-top:5px}
+
+/* ---- task cards ---- */
+.task-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.task-card{
+  background:#8b8b8b;border:3px solid #000;
+  box-shadow:inset 3px 3px 0 #a5a5a5, inset -3px -3px 0 #4c4c4c;
+  padding:12px;display:flex;flex-direction:column;gap:8px;
+}
+.task-card .tname{font-size:10px;color:#1e1e1e;text-shadow:1px 1px 0 #d6d6d6}
+.task-card .tdesc{font-size:8px;color:#4a4a4a;line-height:1.6}
+.pts-badge{
+  align-self:flex-start;background:#1d5e12;border:2px solid #000;color:#aef78e;
+  font-size:8px;padding:5px 7px;box-shadow:inset 1px 1px 0 rgba(255,255,255,.25);
+}
+
+/* ---- history / submission rows ---- */
+.row{
+  display:flex;align-items:center;gap:10px;background:#a8a8a8;border:2px solid #000;
+  padding:8px;margin-bottom:8px;box-shadow:inset 2px 2px 0 #c9c9c9, inset -2px -2px 0 #6f6f6f;
+  flex-wrap:wrap;color:#222;
+}
+.row .thumb{width:52px;height:52px;object-fit:cover;border:2px solid #000;cursor:pointer;flex-shrink:0;background:#333}
+.row .grow{flex:1;min-width:130px}
+.row .rname{font-size:9px}
+.row .rsub{font-size:7px;color:#555;margin-top:4px;line-height:1.6}
+.badge{font-size:7px;padding:4px 6px;border:2px solid #000}
+.badge.pend{background:#e8c33a;color:#3a2c00}
+.badge.ok{background:#4d8f26;color:#dfffc9}
+.badge.no{background:#8f2626;color:#ffd6d6}
+
+/* ---- modals ---- */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:50;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-bg.open{display:flex}
+.modal-box{max-width:420px;width:100%;max-height:90vh;overflow:auto}
+#ms-preview,#mp-img{width:100%;border:3px solid #000;margin:10px 0;display:block}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
+
+/* ---- toasts (advancements!) ---- */
+#toasts{position:fixed;top:12px;right:12px;z-index:100;display:flex;flex-direction:column;gap:8px}
+.toast{
+  background:#2b2b2b;border:3px solid #000;color:#fff;padding:10px 12px;
+  box-shadow:inset 2px 2px 0 #555, inset -2px -2px 0 #111, 0 4px 0 rgba(0,0,0,.5);
+  display:flex;gap:10px;align-items:center;min-width:230px;
+  animation:toastIn .35s cubic-bezier(.2,1.6,.4,1);
+}
+.toast .ticon{font-size:22px}
+.toast .ttitle{font-size:8px;color:#ffff54;margin-bottom:5px}
+.toast .tname{font-size:9px}
+@keyframes toastIn{from{transform:translateX(120%)}to{transform:none}}
+.toast.out{transition:opacity .4s,transform .4s;opacity:0;transform:translateX(120%)}
+
+/* ---- level up overlay ---- */
+#levelup{
+  position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.6);flex-direction:column;pointer-events:none;
+}
+#levelup.show{display:flex}
+#lv-big{font-size:34px;color:#7efc20;text-shadow:5px 5px 0 #123b00;animation:lvPop .8s cubic-bezier(.2,1.8,.4,1)}
+#lv-sub{font-size:11px;color:#fff;text-shadow:3px 3px 0 #000;margin-top:14px;animation:lvPop .8s .15s cubic-bezier(.2,1.8,.4,1) backwards}
+@keyframes lvPop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* ---- floating +points ---- */
+.float-pts{
+  position:fixed;left:50%;top:45%;transform:translateX(-50%);z-index:95;
+  font-size:20px;color:#7efc20;text-shadow:3px 3px 0 #123b00;pointer-events:none;
+  animation:floatUp 1.6s ease-out forwards;
+}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,20px) scale(.5)}15%{opacity:1;transform:translate(-50%,0) scale(1.2)}100%{opacity:0;transform:translate(-50%,-140px) scale(1)}}
+
+.shake{animation:shake .4s}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+.empty{font-size:8px;color:#777;line-height:1.8;padding:8px 0}
+.footer{font-size:7px;color:#7a6248;text-align:center;padding:18px 0 30px;line-height:2}
+.admin-badge{background:#c0392b;border:2px solid #000;font-size:7px;padding:2px 5px;margin-left:5px;vertical-align:middle}
+h3.sec{font-size:10px;margin:14px 0 10px;color:#3f3f3f;text-shadow:1px 1px 0 #fff}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="app">
+
+  <header>
+    <h1>⛏️ <span class="craft">CRAFT</span>TAREFAS</h1>
+    <div id="splash"></div>
+    <button class="mc-btn small" id="btn-admin" onclick="goAdmin()">⚙ ADMIN</button>
+  </header>
+
+  <!-- ================= TELA DO JOGADOR ================= -->
+  <section id="screen-player">
+    <div class="mc-panel dark">
+      <div class="stats">
+        <div>
+          <div class="lv-num" id="st-level">0</div>
+          <div class="lv-label">NÍVEL</div>
+        </div>
+        <div class="xp-wrap">
+          <div class="xp-bar"><div class="xp-fill" id="st-xpfill" style="width:0%"></div></div>
+          <div class="xp-text" id="st-xptext">0 / 500 XP</div>
+        </div>
+      </div>
+      <div class="money-box">
+        <div class="stat-chip"><div class="val" id="st-emeralds">0</div><div class="cap">💚 ESMERALDAS</div></div>
+        <div class="stat-chip"><div class="val money" id="st-money">R$ 0,00</div><div class="cap">💰 VALE EM DINHEIRO</div></div>
+        <div class="stat-chip"><div class="val" id="st-done" style="color:#ffd740;text-shadow:2px 2px 0 #4a3600">0</div><div class="cap">✅ TAREFAS FEITAS</div></div>
+      </div>
+      <div class="xp-text" id="st-rate" style="text-align:left;margin-top:10px"></div>
+    </div>
+
+    <div class="mc-panel">
+      <h2>📋 TAREFAS DISPONÍVEIS</h2>
+      <div class="task-grid" id="task-list"></div>
+    </div>
+
+    <div class="mc-panel">
+      <h2>🕘 MEUS ENVIOS</h2>
+      <div id="history-list"></div>
+    </div>
+  </section>
+
+  <!-- ================= LOGIN ADMIN ================= -->
+  <section id="screen-login" style="display:none">
+    <div class="mc-panel" style="max-width:380px;margin:40px auto">
+      <h2>🔐 ÁREA DO ADMIN</h2>
+      <label class="lbl">SENHA</label>
+      <input class="mc-input" type="password" id="login-pass" inputmode="numeric" placeholder="****" onkeydown="if(event.key==='Enter')tryLogin()">
+      <div class="modal-actions">
+        <button class="mc-btn small" onclick="showScreen('player')">← VOLTAR</button>
+        <button class="mc-btn green small" onclick="tryLogin()">ENTRAR</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PAINEL ADMIN ================= -->
+  <section id="screen-admin" style="display:none">
+    <div class="mc-panel dark">
+      <h2>👑 PAINEL DO ADMIN <span class="admin-badge" id="pend-badge" style="display:none"></span></h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="mc-btn small" onclick="logout()">🚪 SAIR</button>
+        <button class="mc-btn gold small" id="btn-cashout" onclick="cashOut()">💸 PAGAR</button>
+        <button class="mc-btn red small" onclick="resetAll()">🗑 RESETAR TUDO</button>
+      </div>
+    </div>
+
+    <div class="mc-panel">
+      <h2>📸 ENVIOS PARA CONFERIR</h2>
+      <div id="sub-list"></div>
+    </div>
+
+    <div class="mc-panel">
+      <h2>➕ NOVA TAREFA</h2>
+      <label class="lbl">NOME DA TAREFA</label>
+      <input class="mc-input" id="nt-name" placeholder="Ex: Lavar a louça" maxlength="60">
+      <label class="lbl">DESCRIÇÃO (OPCIONAL)</label>
+      <input class="mc-input" id="nt-desc" placeholder="Ex: Deixar tudo secando no escorredor" maxlength="120">
+      <label class="lbl">PONTOS (222 = R$ 2,22)</label>
+      <input class="mc-input" id="nt-points" type="number" value="222" min="1">
+      <button class="mc-btn green block" onclick="addTask()">➕ CRIAR TAREFA</button>
+    </div>
+
+    <div class="mc-panel">
+      <h2>📦 TAREFAS CADASTRADAS</h2>
+      <div id="admin-task-list"></div>
+    </div>
+
+    <div class="mc-panel">
+      <h2>⚙ CONFIGURAÇÕES</h2>
+      <label class="lbl">NOME DO JOGADOR</label>
+      <input class="mc-input" id="cfg-name" maxlength="30">
+      <label class="lbl">CONVERSÃO: QUANTOS PONTOS VALEM R$ 1,00</label>
+      <input class="mc-input" id="cfg-rate" type="number" min="1">
+      <label class="lbl">SENHA DO ADMIN</label>
+      <input class="mc-input" id="cfg-pass" maxlength="20">
+      <button class="mc-btn green block" onclick="saveConfig()">💾 SALVAR CONFIG</button>
+    </div>
+  </section>
+
+  <div class="footer">CRAFTTAREFAS v1.0 · feito com blocos e amor ⛏️💚<br>esmeraldas serão convertidas em dinheiro de verdade!</div>
+</div>
+
+<!-- MODAL: enviar foto -->
+<div class="modal-bg" id="modal-submit">
+  <div class="mc-panel modal-box">
+    <h2 id="ms-title">COMPROVAR TAREFA</h2>
+    <div style="font-size:8px;color:#555;line-height:1.8;margin-bottom:8px">Tire uma foto da tarefa pronta para ganhar <b id="ms-points"></b> na hora! 📸</div>
+    <input type="file" id="ms-file" accept="image/*" hidden>
+    <label for="ms-file" class="mc-btn block">📷 ESCOLHER / TIRAR FOTO</label>
+    <img id="ms-preview" style="display:none" alt="preview">
+    <div class="modal-actions">
+      <button class="mc-btn small" onclick="closeSubmit()">CANCELAR</button>
+      <button class="mc-btn green small" id="ms-confirm" disabled onclick="confirmSubmit()">✔ RECEBER PONTOS!</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ver foto -->
+<div class="modal-bg" id="modal-photo" onclick="this.classList.remove('open')">
+  <div class="mc-panel modal-box">
+    <h2>📷 FOTO DA PROVA</h2>
+    <img id="mp-img" alt="foto">
+    <div class="modal-actions"><button class="mc-btn small">FECHAR</button></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<div id="levelup"><div id="lv-big"></div><div id="lv-sub"></div></div>
+
+<script>
+/* ==================== BANCO DE DADOS (localStorage) ==================== */
+const DB_KEY='craftTarefasDB_v1';
+const XP_PER_LEVEL=500;
+
+function defaultDB(){
+  return {
+    config:{password:'1234',playerName:'Steve',pointsPerReal:100,redeemed:0,achievements:[]},
+    tasks:[
+      {id:'t1',name:'Lavar a louça',desc:'Deixar a pia vazia e tudo limpo',points:222},
+      {id:'t2',name:'Varrer a casa',desc:'Varrer todos os cômodos',points:222},
+      {id:'t3',name:'Tirar o lixo',desc:'Colocar o lixo para fora e trocar o saco',points:222},
+      {id:'t4',name:'Arrumar a cama',desc:'Cama arrumada e quarto em ordem',points:222},
+      {id:'t5',name:'Limpar o banheiro',desc:'Pia, vaso e box brilhando',points:222}
+    ],
+    submissions:[]
+  };
+}
+function load(){
+  try{const raw=localStorage.getItem(DB_KEY);if(raw)return JSON.parse(raw);}catch(e){}
+  const d=defaultDB();try{localStorage.setItem(DB_KEY,JSON.stringify(d));}catch(e){}
+  return d;
+}
+let db=load();
+function save(){
+  try{localStorage.setItem(DB_KEY,JSON.stringify(db));}
+  catch(e){toast('⚠ MEMÓRIA CHEIA!','Peça ao admin para excluir fotos antigas.','🧱');}
+}
+
+/* ==================== CÁLCULOS ==================== */
+const earnedTotal=()=>db.submissions.filter(s=>s.status!=='rejected').reduce((a,s)=>a+s.points,0);
+const balance=()=>earnedTotal()-db.config.redeemed;
+const doneCount=()=>db.submissions.filter(s=>s.status!=='rejected').length;
+const level=()=>Math.floor(earnedTotal()/XP_PER_LEVEL);
+const moneyOf=pts=>pts/db.config.pointsPerReal;
+
+/* ==================== UTILS ==================== */
+const $=id=>document.getElementById(id);
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+const fmtMoney=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const fmtDate=t=>new Date(t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+const uid=()=>'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ==================== SONS 8-BIT (WebAudio) ==================== */
+let actx=null;
+function beep(f,dur,type='square',vol=.12,delay=0){
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type=type;o.frequency.value=f;
+    g.gain.setValueAtTime(vol,actx.currentTime+delay);
+    g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+delay+dur);
+    o.connect(g);g.connect(actx.destination);
+    o.start(actx.currentTime+delay);o.stop(actx.currentTime+delay+dur);
+  }catch(e){}
+}
+const sfxClick=()=>beep(520,.05);
+const sfxPop=()=>{beep(700,.06,'square',.1);beep(1050,.08,'square',.08,.05);};
+const sfxWin=()=>{beep(660,.1,'sine',.15);beep(880,.1,'sine',.15,.1);beep(1320,.18,'sine',.15,.2);};
+const sfxLevel=()=>{[523,659,784,1046,1318].forEach((f,i)=>beep(f,.12,'square',.12,i*.09));};
+const sfxErr=()=>beep(160,.25,'sawtooth',.15);
+document.addEventListener('click',e=>{if(e.target.closest('.mc-btn'))sfxClick();});
+
+/* ==================== SPLASH TEXTS ==================== */
+const SPLASHES=['Também lava louça!','100% sem mods!','Creepers odeiam faxina!','Esmeraldas não caem do céu!','Feito com blocos!','Tarefas dão XP!','Mamãe agradece!','Punching trees não paga nada!','Melhor que minerar!','Villagers aprovam! Hmm!'];
+function newSplash(){$('splash').textContent=SPLASHES[Math.floor(Math.random()*SPLASHES.length)];}
+
+/* ==================== NAVEGAÇÃO ==================== */
+function showScreen(s){
+  ['player','login','admin'].forEach(x=>$('screen-'+x).style.display=x===s?'block':'none');
+  if(s==='player')renderPlayer();
+  if(s==='admin')renderAdmin();
+  window.scrollTo(0,0);
+}
+function goAdmin(){
+  if(sessionStorage.getItem('craftAdminOK')==='1'){showScreen('admin');}
+  else{$('login-pass').value='';showScreen('login');setTimeout(()=>$('login-pass').focus(),100);}
+}
+function tryLogin(){
+  if($('login-pass').value===db.config.password){
+    sessionStorage.setItem('craftAdminOK','1');sfxWin();showScreen('admin');
+  }else{
+    sfxErr();const p=$('login-pass');p.classList.remove('shake');void p.offsetWidth;p.classList.add('shake');
+    toast('❌ SENHA ERRADA!','Tente de novo...','🔒');
+  }
+}
+function logout(){sessionStorage.removeItem('craftAdminOK');showScreen('player');}
+
+/* ==================== TELA DO JOGADOR ==================== */
+function renderPlayer(){
+  const earned=earnedTotal(),bal=balance(),lv=level(),xpIn=earned%XP_PER_LEVEL;
+  $('st-level').textContent=lv;
+  $('st-xpfill').style.width=(xpIn/XP_PER_LEVEL*100)+'%';
+  $('st-xptext').textContent=xpIn+' / '+XP_PER_LEVEL+' XP';
+  $('st-emeralds').textContent=bal.toLocaleString('pt-BR');
+  $('st-money').textContent=fmtMoney(moneyOf(bal));
+  $('st-done').textContent=doneCount();
+  $('st-rate').textContent='💱 '+db.config.pointsPerReal+' esmeraldas = R$ 1,00 · os pontos SERÃO convertidos em dinheiro!';
+
+  const tl=$('task-list');
+  if(!db.tasks.length){tl.innerHTML='<div class="empty">Nenhuma tarefa disponível... peça ao admin para adicionar! 🧱</div>';}
+  else{
+    tl.innerHTML=db.tasks.map(t=>`
+      <div class="task-card">
+        <div class="tname">${esc(t.name)}</div>
+        ${t.desc?`<div class="tdesc">${esc(t.desc)}</div>`:''}
+        <div class="pts-badge">💚 +${t.points} PTS</div>
+        <button class="mc-btn green small" onclick="openSubmit('${t.id}')">📸 COMPROVAR</button>
+      </div>`).join('');
+  }
+
+  const subs=[...db.submissions].sort((a,b)=>b.date-a.date).slice(0,15);
+  const hl=$('history-list');
+  if(!subs.length){hl.innerHTML='<div class="empty">Você ainda não enviou nenhuma tarefa. Bora farmar esmeraldas! ⛏️</div>';}
+  else{
+    hl.innerHTML=subs.map(s=>{
+      const b=s.status==='pending'?'<span class="badge pend">⏳ AGUARDANDO</span>'
+            :s.status==='approved'?'<span class="badge ok">✔ APROVADA</span>'
+            :'<span class="badge no">✖ REJEITADA (pontos removidos)</span>';
+      return `<div class="row">
+        <img class="thumb" src="${s.photo}" onclick="viewPhoto('${s.id}')" alt="foto">
+        <div class="grow"><div class="rname">${esc(s.taskName)}</div>
+        <div class="rsub">+${s.points} pts · ${fmtDate(s.date)}</div></div>
+        ${b}</div>`;
+    }).join('');
+  }
+  newSplash();
+}
+
+/* ==================== ENVIO DE FOTO ==================== */
+let currentTaskId=null,pendingPhoto=null;
+function openSubmit(taskId){
+  const t=db.tasks.find(x=>x.id===taskId);if(!t)return;
+  currentTaskId=taskId;pendingPhoto=null;
+  $('ms-title').textContent='📸 '+t.name.toUpperCase();
+  $('ms-points').textContent='+'+t.points+' 💚';
+  $('ms-preview').style.display='none';$('ms-preview').src='';
+  $('ms-file').value='';$('ms-confirm').disabled=true;
+  $('modal-submit').classList.add('open');
+}
+function closeSubmit(){$('modal-submit').classList.remove('open');currentTaskId=null;pendingPhoto=null;}
+
+$('ms-file').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  compressImage(f,dataUrl=>{
+    pendingPhoto=dataUrl;
+    $('ms-preview').src=dataUrl;$('ms-preview').style.display='block';
+    $('ms-confirm').disabled=false;sfxPop();
+  });
+});
+
+function compressImage(file,cb){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=800,scale=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');
+      c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      cb(c.toDataURL('image/jpeg',.65));
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function confirmSubmit(){
+  const t=db.tasks.find(x=>x.id===currentTaskId);
+  if(!t||!pendingPhoto)return;
+  const lvBefore=level();
+  db.submissions.push({id:uid(),taskId:t.id,taskName:t.name,points:t.points,photo:pendingPhoto,date:Date.now(),status:'pending'});
+  save();
+  closeSubmit();
+  floatPts('+'+t.points+' 💚');
+  sfxWin();
+  checkAchievements();
+  renderPlayer();
+  if(level()>lvBefore)setTimeout(showLevelUp,600);
+}
+
+function floatPts(txt){
+  const d=document.createElement('div');d.className='float-pts';d.textContent=txt;
+  document.body.appendChild(d);setTimeout(()=>d.remove(),1700);
+}
+function showLevelUp(){
+  $('lv-big').textContent='NÍVEL '+level()+'!';
+  $('lv-sub').textContent='LEVEL UP! 🎉';
+  $('levelup').classList.add('show');sfxLevel();
+  setTimeout(()=>$('levelup').classList.remove('show'),2600);
+}
+
+/* ==================== CONQUISTAS ==================== */
+const ACHIEVEMENTS=[
+  {id:'first',icon:'📸',name:'Primeira Prova!',cond:c=>c.done>=1},
+  {id:'five',icon:'⛏️',name:'Picareta de Pedra! (5 tarefas)',cond:c=>c.done>=5},
+  {id:'ten',icon:'💎',name:'Era do Diamante! (10 tarefas)',cond:c=>c.done>=10},
+  {id:'rich',icon:'👑',name:'Mil Esmeraldas!',cond:c=>c.earned>=1000},
+  {id:'twenty',icon:'🏆',name:'Lenda da Faxina! (20 tarefas)',cond:c=>c.done>=20}
+];
+function checkAchievements(){
+  const ctx={done:doneCount(),earned:earnedTotal()};
+  ACHIEVEMENTS.forEach(a=>{
+    if(!db.config.achievements.includes(a.id)&&a.cond(ctx)){
+      db.config.achievements.push(a.id);save();
+      setTimeout(()=>{toast('🏆 CONQUISTA DESBLOQUEADA!',a.name,a.icon);sfxLevel();},900);
+    }
+  });
+}
+function toast(title,name,icon){
+  const t=document.createElement('div');t.className='toast';
+  t.innerHTML=`<div class="ticon">${icon}</div><div><div class="ttitle">${esc(title)}</div><div class="tname">${esc(name)}</div></div>`;
+  $('toasts').appendChild(t);
+  setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),450);},3200);
+}
+
+/* ==================== ADMIN ==================== */
+function renderAdmin(){
+  const pend=db.submissions.filter(s=>s.status==='pending').length;
+  const pb=$('pend-badge');
+  pb.style.display=pend?'inline':'none';pb.textContent=pend+' NOVO'+(pend>1?'S':'');
+  $('btn-cashout').textContent='💸 PAGAR '+fmtMoney(moneyOf(balance()));
+
+  const subs=[...db.submissions].sort((a,b)=>(a.status==='pending'?0:1)-(b.status==='pending'?0:1)||b.date-a.date);
+  const sl=$('sub-list');
+  if(!subs.length){sl.innerHTML='<div class="empty">Nenhum envio ainda. 📭</div>';}
+  else{
+    sl.innerHTML=subs.map(s=>{
+      const b=s.status==='pending'?'<span class="badge pend">⏳ PENDENTE</span>'
+            :s.status==='approved'?'<span class="badge ok">✔ APROVADA</span>'
+            :'<span class="badge no">✖ REJEITADA</span>';
+      let acts='';
+      if(s.status==='pending')acts=`<button class="mc-btn green small" onclick="setStatus('${s.id}','approved')">✔</button>
+        <button class="mc-btn red small" onclick="setStatus('${s.id}','rejected')">✖</button>`;
+      else if(s.status==='approved')acts=`<button class="mc-btn red small" onclick="setStatus('${s.id}','rejected')">✖ REJEITAR</button>`;
+      else acts=`<button class="mc-btn green small" onclick="setStatus('${s.id}','approved')">↩ REAPROVAR</button>`;
+      return `<div class="row">
+        <img class="thumb" src="${s.photo}" onclick="viewPhoto('${s.id}')" alt="foto">
+        <div class="grow"><div class="rname">${esc(s.taskName)} · +${s.points} pts</div>
+        <div class="rsub">${fmtDate(s.date)}</div></div>
+        ${b} ${acts}
+        <button class="mc-btn small" onclick="delSub('${s.id}')">🗑</button>
+      </div>`;
+    }).join('');
+  }
+
+  const atl=$('admin-task-list');
+  if(!db.tasks.length){atl.innerHTML='<div class="empty">Sem tarefas cadastradas.</div>';}
+  else{
+    atl.innerHTML=db.tasks.map(t=>`<div class="row">
+      <div class="grow"><div class="rname">${esc(t.name)}</div>
+      <div class="rsub">${esc(t.desc||'')} · 💚 ${t.points} pts (${fmtMoney(moneyOf(t.points))})</div></div>
+      <button class="mc-btn red small" onclick="delTask('${t.id}')">🗑</button>
+    </div>`).join('');
+  }
+
+  $('cfg-name').value=db.config.playerName;
+  $('cfg-rate').value=db.config.pointsPerReal;
+  $('cfg-pass').value=db.config.password;
+}
+
+function addTask(){
+  const name=$('nt-name').value.trim(),desc=$('nt-desc').value.trim();
+  const pts=parseInt($('nt-points').value,10);
+  if(!name){toast('⚠ FALTA O NOME','Dê um nome para a tarefa.','📝');sfxErr();return;}
+  if(!pts||pts<1){toast('⚠ PONTOS INVÁLIDOS','Informe os pontos da tarefa.','📝');sfxErr();return;}
+  db.tasks.push({id:uid(),name,desc,points:pts});save();
+  $('nt-name').value='';$('nt-desc').value='';$('nt-points').value=222;
+  toast('✔ TAREFA CRIADA!',name,'📋');sfxWin();renderAdmin();
+}
+function delTask(id){
+  if(!confirm('Excluir esta tarefa?'))return;
+  db.tasks=db.tasks.filter(t=>t.id!==id);save();renderAdmin();
+}
+function setStatus(id,st){
+  const s=db.submissions.find(x=>x.id===id);if(!s)return;
+  if(st==='rejected'&&!confirm('Rejeitar? Os pontos serão REMOVIDOS do saldo dele.'))return;
+  s.status=st;save();renderAdmin();
+  toast(st==='rejected'?'✖ ENVIO REJEITADO':'✔ ENVIO APROVADO',s.taskName+(st==='rejected'?' — pontos removidos':''),st==='rejected'?'🚫':'✅');
+}
+function delSub(id){
+  if(!confirm('Excluir este envio (e a foto)?'))return;
+  db.submissions=db.submissions.filter(s=>s.id!==id);save();renderAdmin();
+}
+function viewPhoto(id){
+  const s=db.submissions.find(x=>x.id===id);if(!s)return;
+  $('mp-img').src=s.photo;$('modal-photo').classList.add('open');
+}
+function saveConfig(){
+  db.config.playerName=$('cfg-name').value.trim()||'Steve';
+  const rate=parseInt($('cfg-rate').value,10);
+  if(rate>0)db.config.pointsPerReal=rate;
+  const pass=$('cfg-pass').value.trim();
+  if(pass)db.config.password=pass;
+  save();toast('💾 CONFIG SALVA!','','⚙');sfxWin();renderAdmin();
+}
+function cashOut(){
+  const bal=balance();
+  if(bal<=0){toast('💸 SALDO ZERADO','Não há nada para pagar ainda.','🕳');sfxErr();return;}
+  if(!confirm('Confirmar pagamento de '+fmtMoney(moneyOf(bal))+' para '+db.config.playerName+'?\nO saldo de esmeraldas será zerado.'))return;
+  db.config.redeemed=earnedTotal();save();renderAdmin();
+  toast('💸 PAGAMENTO REGISTRADO!',fmtMoney(moneyOf(bal))+' pago. Saldo zerado.','💰');sfxLevel();
+}
+function resetAll(){
+  if(!confirm('RESETAR TUDO? Apaga tarefas, fotos e pontos!'))return;
+  if(!confirm('TEM CERTEZA MESMO? Isso não tem volta!'))return;
+  localStorage.removeItem(DB_KEY);sessionStorage.removeItem('craftAdminOK');
+  db=load();showScreen('player');toast('🗑 MUNDO RESETADO!','Um novo mundo foi gerado.','🌍');
+}
+
+/* ==================== PARTÍCULAS DE FUNDO ==================== */
+(function(){
+  const c=$('bg'),ctx=c.getContext('2d');let W,H,parts=[];
+  function resize(){W=c.width=innerWidth;H=c.height=innerHeight;}
+  resize();addEventListener('resize',resize);
+  const COLORS=['#50c878','#3eb35f','#7efc20','#2e8b57','#aef78e'];
+  for(let i=0;i<36;i++)parts.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,s:3+Math.random()*5,v:.3+Math.random()*.8,c:COLORS[i%COLORS.length],o:.15+Math.random()*.3});
+  (function loop(){
+    ctx.clearRect(0,0,W,H);
+    parts.forEach(p=>{
+      p.y+=p.v;if(p.y>H+10){p.y=-10;p.x=Math.random()*W;}
+      ctx.globalAlpha=p.o;ctx.fillStyle=p.c;ctx.fillRect(p.x,p.y,p.s,p.s);
+    });
+    ctx.globalAlpha=1;requestAnimationFrame(loop);
+  })();
+})();
+
+/* ==================== INIT ==================== */
+renderPlayer();
+</script>
+</body>
+</html>
