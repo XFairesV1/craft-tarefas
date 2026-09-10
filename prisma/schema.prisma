@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Config {
+  id             Int      @id @default(autoincrement())
+  playerName     String   @default("Steve")
+  pointsPerReal  Int      @default(100)
+  redeemedPoints Int      @default(0)
+  passwordHash   String
+  achievements   String[] @default([])
+  updatedAt      DateTime @updatedAt
+}
+
+model Task {
+  id                Int          @id @default(autoincrement())
+  name              String
+  desc              String       @default("")
+  points            Int
+  frequencyPerWeek  Int          @default(7)
+  createdAt         DateTime     @default(now())
+  submissions       Submission[]
+}
+
+model Submission {
+  id         Int      @id @default(autoincrement())
+  taskId     Int
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskName   String
+  points     Int
+  photo      Bytes
+  photoMime  String
+  status     String   @default("pending") // pending | approved | rejected
+  createdAt  DateTime @default(now())
+  reviewedAt DateTime?
+
+  @@index([taskId, status, createdAt])
+}

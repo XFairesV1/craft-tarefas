@@ -102,12 +102,14 @@ label.lbl{font-size:8px;color:#555;display:block;margin:6px 0 4px}
   box-shadow:inset 3px 3px 0 #a5a5a5, inset -3px -3px 0 #4c4c4c;
   padding:12px;display:flex;flex-direction:column;gap:8px;
 }
+.task-card.locked{filter:grayscale(.6) brightness(.85)}
 .task-card .tname{font-size:10px;color:#1e1e1e;text-shadow:1px 1px 0 #d6d6d6}
 .task-card .tdesc{font-size:8px;color:#4a4a4a;line-height:1.6}
 .pts-badge{
   align-self:flex-start;background:#1d5e12;border:2px solid #000;color:#aef78e;
   font-size:8px;padding:5px 7px;box-shadow:inset 1px 1px 0 rgba(255,255,255,.25);
 }
+.freq-note{font-size:7px;color:#555}
 
 /* ---- history / submission rows ---- */
 .row{
@@ -170,6 +172,7 @@ label.lbl{font-size:8px;color:#555;display:block;margin:6px 0 4px}
 .footer{font-size:7px;color:#7a6248;text-align:center;padding:18px 0 30px;line-height:2}
 .admin-badge{background:#c0392b;border:2px solid #000;font-size:7px;padding:2px 5px;margin-left:5px;vertical-align:middle}
 h3.sec{font-size:10px;margin:14px 0 10px;color:#3f3f3f;text-shadow:1px 1px 0 #fff}
+.proj-line{font-size:8px;color:#ffd740;margin-top:10px}
 </style>
 </head>
 <body>
@@ -219,7 +222,7 @@ h3.sec{font-size:10px;margin:14px 0 10px;color:#3f3f3f;text-shadow:1px 1px 0 #ff
     <div class="mc-panel" style="max-width:380px;margin:40px auto">
       <h2>🔐 ÁREA DO ADMIN</h2>
       <label class="lbl">SENHA</label>
-      <input class="mc-input" type="password" id="login-pass" inputmode="numeric" placeholder="****" onkeydown="if(event.key==='Enter')tryLogin()">
+      <input class="mc-input" type="password" id="login-pass" placeholder="****" onkeydown="if(event.key==='Enter')tryLogin()">
       <div class="modal-actions">
         <button class="mc-btn small" onclick="showScreen('player')">← VOLTAR</button>
         <button class="mc-btn green small" onclick="tryLogin()">ENTRAR</button>
@@ -234,8 +237,9 @@ h3.sec{font-size:10px;margin:14px 0 10px;color:#3f3f3f;text-shadow:1px 1px 0 #ff
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="mc-btn small" onclick="logout()">🚪 SAIR</button>
         <button class="mc-btn gold small" id="btn-cashout" onclick="cashOut()">💸 PAGAR</button>
-        <button class="mc-btn red small" onclick="resetAll()">🗑 RESETAR TUDO</button>
+        <button class="mc-btn red small" onclick="resetAll()">🗑 ZERAR PROGRESSO</button>
       </div>
+      <div class="proj-line" id="proj-line"></div>
     </div>
 
     <div class="mc-panel">
@@ -249,8 +253,10 @@ h3.sec{font-size:10px;margin:14px 0 10px;color:#3f3f3f;text-shadow:1px 1px 0 #ff
       <input class="mc-input" id="nt-name" placeholder="Ex: Lavar a louça" maxlength="60">
       <label class="lbl">DESCRIÇÃO (OPCIONAL)</label>
       <input class="mc-input" id="nt-desc" placeholder="Ex: Deixar tudo secando no escorredor" maxlength="120">
-      <label class="lbl">PONTOS (222 = R$ 2,22)</label>
-      <input class="mc-input" id="nt-points" type="number" value="222" min="1">
+      <label class="lbl">PONTOS (100 = R$ 1,00)</label>
+      <input class="mc-input" id="nt-points" type="number" value="100" min="1">
+      <label class="lbl">QUANTAS VEZES POR SEMANA PODE FAZER (1 a 7)</label>
+      <input class="mc-input" id="nt-freq" type="number" value="7" min="1" max="7">
       <button class="mc-btn green block" onclick="addTask()">➕ CRIAR TAREFA</button>
     </div>
 
@@ -265,13 +271,13 @@ h3.sec{font-size:10px;margin:14px 0 10px;color:#3f3f3f;text-shadow:1px 1px 0 #ff
       <input class="mc-input" id="cfg-name" maxlength="30">
       <label class="lbl">CONVERSÃO: QUANTOS PONTOS VALEM R$ 1,00</label>
       <input class="mc-input" id="cfg-rate" type="number" min="1">
-      <label class="lbl">SENHA DO ADMIN</label>
-      <input class="mc-input" id="cfg-pass" maxlength="20">
+      <label class="lbl">NOVA SENHA DO ADMIN (deixe em branco pra manter)</label>
+      <input class="mc-input" id="cfg-pass" type="password" maxlength="40" placeholder="••••••••">
       <button class="mc-btn green block" onclick="saveConfig()">💾 SALVAR CONFIG</button>
     </div>
   </section>
 
-  <div class="footer">CRAFTTAREFAS v1.0 · feito com blocos e amor ⛏️💚<br>esmeraldas serão convertidas em dinheiro de verdade!</div>
+  <div class="footer">CRAFTTAREFAS v2.0 · feito com blocos e amor ⛏️💚<br>esmeraldas serão convertidas em dinheiro de verdade!</div>
 </div>
 
 <!-- MODAL: enviar foto -->
@@ -302,47 +308,19 @@ h3.sec{font-size:10px;margin:14px 0 10px;color:#3f3f3f;text-shadow:1px 1px 0 #ff
 <div id="levelup"><div id="lv-big"></div><div id="lv-sub"></div></div>
 
 <script>
-/* ==================== BANCO DE DADOS (localStorage) ==================== */
-const DB_KEY='craftTarefasDB_v1';
 const XP_PER_LEVEL=500;
-
-function defaultDB(){
-  return {
-    config:{password:'1234',playerName:'Steve',pointsPerReal:100,redeemed:0,achievements:[]},
-    tasks:[
-      {id:'t1',name:'Lavar a louça',desc:'Deixar a pia vazia e tudo limpo',points:222},
-      {id:'t2',name:'Varrer a casa',desc:'Varrer todos os cômodos',points:222},
-      {id:'t3',name:'Tirar o lixo',desc:'Colocar o lixo para fora e trocar o saco',points:222},
-      {id:'t4',name:'Arrumar a cama',desc:'Cama arrumada e quarto em ordem',points:222},
-      {id:'t5',name:'Limpar o banheiro',desc:'Pia, vaso e box brilhando',points:222}
-    ],
-    submissions:[]
-  };
-}
-function load(){
-  try{const raw=localStorage.getItem(DB_KEY);if(raw)return JSON.parse(raw);}catch(e){}
-  const d=defaultDB();try{localStorage.setItem(DB_KEY,JSON.stringify(d));}catch(e){}
-  return d;
-}
-let db=load();
-function save(){
-  try{localStorage.setItem(DB_KEY,JSON.stringify(db));}
-  catch(e){toast('⚠ MEMÓRIA CHEIA!','Peça ao admin para excluir fotos antigas.','🧱');}
-}
-
-/* ==================== CÁLCULOS ==================== */
-const earnedTotal=()=>db.submissions.filter(s=>s.status!=='rejected').reduce((a,s)=>a+s.points,0);
-const balance=()=>earnedTotal()-db.config.redeemed;
-const doneCount=()=>db.submissions.filter(s=>s.status!=='rejected').length;
-const level=()=>Math.floor(earnedTotal()/XP_PER_LEVEL);
-const moneyOf=pts=>pts/db.config.pointsPerReal;
-
-/* ==================== UTILS ==================== */
 const $=id=>document.getElementById(id);
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 const fmtMoney=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fmtDate=t=>new Date(t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-const uid=()=>'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+async function api(path,opts={}){
+  const res=await fetch(path,{credentials:'same-origin',...opts,headers:{...(opts.body&&!(opts.body instanceof FormData)?{'Content-Type':'application/json'}:{}),...(opts.headers||{})}});
+  let data=null;
+  try{data=await res.json();}catch(e){}
+  if(!res.ok){const err=new Error((data&&data.error)||'request_failed');err.status=res.status;err.data=data;throw err;}
+  return data;
+}
 
 /* ==================== SONS 8-BIT (WebAudio) ==================== */
 let actx=null;
@@ -369,61 +347,71 @@ const SPLASHES=['Também lava louça!','100% sem mods!','Creepers odeiam faxina!
 function newSplash(){$('splash').textContent=SPLASHES[Math.floor(Math.random()*SPLASHES.length)];}
 
 /* ==================== NAVEGAÇÃO ==================== */
+let playerState=null;
+
 function showScreen(s){
   ['player','login','admin'].forEach(x=>$('screen-'+x).style.display=x===s?'block':'none');
   if(s==='player')renderPlayer();
   if(s==='admin')renderAdmin();
   window.scrollTo(0,0);
 }
-function goAdmin(){
-  if(sessionStorage.getItem('craftAdminOK')==='1'){showScreen('admin');}
-  else{$('login-pass').value='';showScreen('login');setTimeout(()=>$('login-pass').focus(),100);}
+async function goAdmin(){
+  try{
+    const {authenticated}=await api('/api/admin/session');
+    showScreen(authenticated?'admin':'login');
+    if(!authenticated){$('login-pass').value='';setTimeout(()=>$('login-pass').focus(),100);}
+  }catch(e){showScreen('login');}
 }
-function tryLogin(){
-  if($('login-pass').value===db.config.password){
-    sessionStorage.setItem('craftAdminOK','1');sfxWin();showScreen('admin');
-  }else{
+async function tryLogin(){
+  try{
+    await api('/api/admin/login',{method:'POST',body:JSON.stringify({password:$('login-pass').value})});
+    sfxWin();showScreen('admin');
+  }catch(e){
     sfxErr();const p=$('login-pass');p.classList.remove('shake');void p.offsetWidth;p.classList.add('shake');
-    toast('❌ SENHA ERRADA!','Tente de novo...','🔒');
+    toast(e.status===429?'⏳ MUITAS TENTATIVAS':'❌ SENHA ERRADA!',e.status===429?'Espera um pouco e tenta de novo.':'Tente de novo...','🔒');
   }
 }
-function logout(){sessionStorage.removeItem('craftAdminOK');showScreen('player');}
+async function logout(){await api('/api/admin/logout',{method:'POST'});showScreen('player');}
 
 /* ==================== TELA DO JOGADOR ==================== */
-function renderPlayer(){
-  const earned=earnedTotal(),bal=balance(),lv=level(),xpIn=earned%XP_PER_LEVEL;
-  $('st-level').textContent=lv;
+async function renderPlayer(){
+  try{playerState=await api('/api/state');}catch(e){return;}
+  const {player,stats,tasks,submissions}=playerState;
+  const xpIn=stats.xpIn;
+  $('st-level').textContent=stats.level;
   $('st-xpfill').style.width=(xpIn/XP_PER_LEVEL*100)+'%';
   $('st-xptext').textContent=xpIn+' / '+XP_PER_LEVEL+' XP';
-  $('st-emeralds').textContent=bal.toLocaleString('pt-BR');
-  $('st-money').textContent=fmtMoney(moneyOf(bal));
-  $('st-done').textContent=doneCount();
-  $('st-rate').textContent='💱 '+db.config.pointsPerReal+' esmeraldas = R$ 1,00 · os pontos SERÃO convertidos em dinheiro!';
+  $('st-emeralds').textContent=stats.balance.toLocaleString('pt-BR');
+  $('st-money').textContent=fmtMoney(stats.balance/player.pointsPerReal);
+  $('st-done').textContent=stats.done;
+  $('st-rate').textContent='💱 '+player.pointsPerReal+' esmeraldas = R$ 1,00 · os pontos SERÃO convertidos em dinheiro!';
 
   const tl=$('task-list');
-  if(!db.tasks.length){tl.innerHTML='<div class="empty">Nenhuma tarefa disponível... peça ao admin para adicionar! 🧱</div>';}
+  if(!tasks.length){tl.innerHTML='<div class="empty">Nenhuma tarefa disponível... peça ao admin para adicionar! 🧱</div>';}
   else{
-    tl.innerHTML=db.tasks.map(t=>`
-      <div class="task-card">
+    tl.innerHTML=tasks.map(t=>{
+      const locked=t.remainingThisWeek<=0;
+      return `<div class="task-card${locked?' locked':''}">
         <div class="tname">${esc(t.name)}</div>
         ${t.desc?`<div class="tdesc">${esc(t.desc)}</div>`:''}
         <div class="pts-badge">💚 +${t.points} PTS</div>
-        <button class="mc-btn green small" onclick="openSubmit('${t.id}')">📸 COMPROVAR</button>
-      </div>`).join('');
+        <div class="freq-note">${locked?'⏳ limite da semana atingido':'restam '+t.remainingThisWeek+'x essa semana'}</div>
+        <button class="mc-btn green small" ${locked?'disabled':''} onclick="openSubmit(${t.id})">📸 COMPROVAR</button>
+      </div>`;
+    }).join('');
   }
 
-  const subs=[...db.submissions].sort((a,b)=>b.date-a.date).slice(0,15);
   const hl=$('history-list');
-  if(!subs.length){hl.innerHTML='<div class="empty">Você ainda não enviou nenhuma tarefa. Bora farmar esmeraldas! ⛏️</div>';}
+  if(!submissions.length){hl.innerHTML='<div class="empty">Você ainda não enviou nenhuma tarefa. Bora farmar esmeraldas! ⛏️</div>';}
   else{
-    hl.innerHTML=subs.map(s=>{
+    hl.innerHTML=submissions.slice(0,15).map(s=>{
       const b=s.status==='pending'?'<span class="badge pend">⏳ AGUARDANDO</span>'
             :s.status==='approved'?'<span class="badge ok">✔ APROVADA</span>'
             :'<span class="badge no">✖ REJEITADA (pontos removidos)</span>';
       return `<div class="row">
-        <img class="thumb" src="${s.photo}" onclick="viewPhoto('${s.id}')" alt="foto">
+        <img class="thumb" src="/api/photos/${s.id}" onclick="viewPhoto(${s.id})" alt="foto">
         <div class="grow"><div class="rname">${esc(s.taskName)}</div>
-        <div class="rsub">+${s.points} pts · ${fmtDate(s.date)}</div></div>
+        <div class="rsub">+${s.points} pts · ${fmtDate(s.createdAt)}</div></div>
         ${b}</div>`;
     }).join('');
   }
@@ -431,23 +419,23 @@ function renderPlayer(){
 }
 
 /* ==================== ENVIO DE FOTO ==================== */
-let currentTaskId=null,pendingPhoto=null;
+let currentTaskId=null,pendingBlob=null;
 function openSubmit(taskId){
-  const t=db.tasks.find(x=>x.id===taskId);if(!t)return;
-  currentTaskId=taskId;pendingPhoto=null;
+  const t=playerState.tasks.find(x=>x.id===taskId);if(!t)return;
+  currentTaskId=taskId;pendingBlob=null;
   $('ms-title').textContent='📸 '+t.name.toUpperCase();
   $('ms-points').textContent='+'+t.points+' 💚';
   $('ms-preview').style.display='none';$('ms-preview').src='';
   $('ms-file').value='';$('ms-confirm').disabled=true;
   $('modal-submit').classList.add('open');
 }
-function closeSubmit(){$('modal-submit').classList.remove('open');currentTaskId=null;pendingPhoto=null;}
+function closeSubmit(){$('modal-submit').classList.remove('open');currentTaskId=null;pendingBlob=null;}
 
 $('ms-file').addEventListener('change',e=>{
   const f=e.target.files[0];if(!f)return;
-  compressImage(f,dataUrl=>{
-    pendingPhoto=dataUrl;
-    $('ms-preview').src=dataUrl;$('ms-preview').style.display='block';
+  compressImage(f,blob=>{
+    pendingBlob=blob;
+    $('ms-preview').src=URL.createObjectURL(blob);$('ms-preview').style.display='block';
     $('ms-confirm').disabled=false;sfxPop();
   });
 });
@@ -461,25 +449,33 @@ function compressImage(file,cb){
       const c=document.createElement('canvas');
       c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
       c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-      cb(c.toDataURL('image/jpeg',.65));
+      c.toBlob(cb,'image/jpeg',.65);
     };
     img.src=e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
-function confirmSubmit(){
-  const t=db.tasks.find(x=>x.id===currentTaskId);
-  if(!t||!pendingPhoto)return;
-  const lvBefore=level();
-  db.submissions.push({id:uid(),taskId:t.id,taskName:t.name,points:t.points,photo:pendingPhoto,date:Date.now(),status:'pending'});
-  save();
+async function confirmSubmit(){
+  const t=playerState.tasks.find(x=>x.id===currentTaskId);
+  if(!t||!pendingBlob)return;
+  const lvBefore=playerState.stats.level;
+  const fd=new FormData();
+  fd.append('taskId',t.id);
+  fd.append('photo',pendingBlob,'foto.jpg');
   closeSubmit();
-  floatPts('+'+t.points+' 💚');
-  sfxWin();
-  checkAchievements();
-  renderPlayer();
-  if(level()>lvBefore)setTimeout(showLevelUp,600);
+  try{
+    const res=await api('/api/submissions',{method:'POST',body:fd});
+    floatPts('+'+res.points+' 💚');
+    sfxWin();
+    await renderPlayer();
+    (res.unlocked||[]).forEach((a,i)=>setTimeout(()=>{toast('🏆 CONQUISTA DESBLOQUEADA!',a.name,a.icon);sfxLevel();},900+i*600));
+    if(res.level>lvBefore)setTimeout(showLevelUp,600+(res.unlocked||[]).length*600);
+  }catch(e){
+    sfxErr();
+    if(e.status===409)toast('⏳ LIMITE DA SEMANA','Essa tarefa já bateu o limite. Volta segunda!','🗓');
+    else toast('⚠ ERRO AO ENVIAR','Tenta de novo daqui a pouco.','📡');
+  }
 }
 
 function floatPts(txt){
@@ -487,28 +483,10 @@ function floatPts(txt){
   document.body.appendChild(d);setTimeout(()=>d.remove(),1700);
 }
 function showLevelUp(){
-  $('lv-big').textContent='NÍVEL '+level()+'!';
+  $('lv-big').textContent='NÍVEL '+playerState.stats.level+'!';
   $('lv-sub').textContent='LEVEL UP! 🎉';
   $('levelup').classList.add('show');sfxLevel();
   setTimeout(()=>$('levelup').classList.remove('show'),2600);
-}
-
-/* ==================== CONQUISTAS ==================== */
-const ACHIEVEMENTS=[
-  {id:'first',icon:'📸',name:'Primeira Prova!',cond:c=>c.done>=1},
-  {id:'five',icon:'⛏️',name:'Picareta de Pedra! (5 tarefas)',cond:c=>c.done>=5},
-  {id:'ten',icon:'💎',name:'Era do Diamante! (10 tarefas)',cond:c=>c.done>=10},
-  {id:'rich',icon:'👑',name:'Mil Esmeraldas!',cond:c=>c.earned>=1000},
-  {id:'twenty',icon:'🏆',name:'Lenda da Faxina! (20 tarefas)',cond:c=>c.done>=20}
-];
-function checkAchievements(){
-  const ctx={done:doneCount(),earned:earnedTotal()};
-  ACHIEVEMENTS.forEach(a=>{
-    if(!db.config.achievements.includes(a.id)&&a.cond(ctx)){
-      db.config.achievements.push(a.id);save();
-      setTimeout(()=>{toast('🏆 CONQUISTA DESBLOQUEADA!',a.name,a.icon);sfxLevel();},900);
-    }
-  });
 }
 function toast(title,name,icon){
   const t=document.createElement('div');t.className='toast';
@@ -518,97 +496,102 @@ function toast(title,name,icon){
 }
 
 /* ==================== ADMIN ==================== */
-function renderAdmin(){
-  const pend=db.submissions.filter(s=>s.status==='pending').length;
+let adminData=null;
+async function renderAdmin(){
+  try{adminData=await api('/api/admin/overview');}catch(e){showScreen('login');return;}
+  const {config,stats,cashoutReais,projectionReais,tasks,submissions}=adminData;
+  const pend=submissions.filter(s=>s.status==='pending').length;
   const pb=$('pend-badge');
   pb.style.display=pend?'inline':'none';pb.textContent=pend+' NOVO'+(pend>1?'S':'');
-  $('btn-cashout').textContent='💸 PAGAR '+fmtMoney(moneyOf(balance()));
+  $('btn-cashout').textContent='💸 PAGAR '+fmtMoney(cashoutReais);
+  $('proj-line').textContent='🧮 Se ele fizer TUDO nas tarefas ativas, dá até '+fmtMoney(projectionReais)+' no mês.';
 
-  const subs=[...db.submissions].sort((a,b)=>(a.status==='pending'?0:1)-(b.status==='pending'?0:1)||b.date-a.date);
   const sl=$('sub-list');
-  if(!subs.length){sl.innerHTML='<div class="empty">Nenhum envio ainda. 📭</div>';}
+  if(!submissions.length){sl.innerHTML='<div class="empty">Nenhum envio ainda. 📭</div>';}
   else{
-    sl.innerHTML=subs.map(s=>{
+    sl.innerHTML=submissions.map(s=>{
       const b=s.status==='pending'?'<span class="badge pend">⏳ PENDENTE</span>'
             :s.status==='approved'?'<span class="badge ok">✔ APROVADA</span>'
             :'<span class="badge no">✖ REJEITADA</span>';
       let acts='';
-      if(s.status==='pending')acts=`<button class="mc-btn green small" onclick="setStatus('${s.id}','approved')">✔</button>
-        <button class="mc-btn red small" onclick="setStatus('${s.id}','rejected')">✖</button>`;
-      else if(s.status==='approved')acts=`<button class="mc-btn red small" onclick="setStatus('${s.id}','rejected')">✖ REJEITAR</button>`;
-      else acts=`<button class="mc-btn green small" onclick="setStatus('${s.id}','approved')">↩ REAPROVAR</button>`;
+      if(s.status==='pending')acts=`<button class="mc-btn green small" onclick="setStatus(${s.id},'approved')">✔</button>
+        <button class="mc-btn red small" onclick="setStatus(${s.id},'rejected')">✖</button>`;
+      else if(s.status==='approved')acts=`<button class="mc-btn red small" onclick="setStatus(${s.id},'rejected')">✖ REJEITAR</button>`;
+      else acts=`<button class="mc-btn green small" onclick="setStatus(${s.id},'approved')">↩ REAPROVAR</button>`;
       return `<div class="row">
-        <img class="thumb" src="${s.photo}" onclick="viewPhoto('${s.id}')" alt="foto">
+        <img class="thumb" src="/api/photos/${s.id}" onclick="viewPhoto(${s.id})" alt="foto">
         <div class="grow"><div class="rname">${esc(s.taskName)} · +${s.points} pts</div>
-        <div class="rsub">${fmtDate(s.date)}</div></div>
+        <div class="rsub">${fmtDate(s.createdAt)}</div></div>
         ${b} ${acts}
-        <button class="mc-btn small" onclick="delSub('${s.id}')">🗑</button>
+        <button class="mc-btn small" onclick="delSub(${s.id})">🗑</button>
       </div>`;
     }).join('');
   }
 
   const atl=$('admin-task-list');
-  if(!db.tasks.length){atl.innerHTML='<div class="empty">Sem tarefas cadastradas.</div>';}
+  if(!tasks.length){atl.innerHTML='<div class="empty">Sem tarefas cadastradas.</div>';}
   else{
-    atl.innerHTML=db.tasks.map(t=>`<div class="row">
+    atl.innerHTML=tasks.map(t=>`<div class="row">
       <div class="grow"><div class="rname">${esc(t.name)}</div>
-      <div class="rsub">${esc(t.desc||'')} · 💚 ${t.points} pts (${fmtMoney(moneyOf(t.points))})</div></div>
-      <button class="mc-btn red small" onclick="delTask('${t.id}')">🗑</button>
+      <div class="rsub">${esc(t.desc||'')} · 💚 ${t.points} pts (${fmtMoney(t.valueReais)}) · até ${t.frequencyPerWeek}x/semana</div></div>
+      <button class="mc-btn red small" onclick="delTask(${t.id})">🗑</button>
     </div>`).join('');
   }
 
-  $('cfg-name').value=db.config.playerName;
-  $('cfg-rate').value=db.config.pointsPerReal;
-  $('cfg-pass').value=db.config.password;
+  $('cfg-name').value=config.playerName;
+  $('cfg-rate').value=config.pointsPerReal;
+  $('cfg-pass').value='';
 }
 
-function addTask(){
+async function addTask(){
   const name=$('nt-name').value.trim(),desc=$('nt-desc').value.trim();
-  const pts=parseInt($('nt-points').value,10);
+  const points=parseInt($('nt-points').value,10);
+  const frequencyPerWeek=parseInt($('nt-freq').value,10);
   if(!name){toast('⚠ FALTA O NOME','Dê um nome para a tarefa.','📝');sfxErr();return;}
-  if(!pts||pts<1){toast('⚠ PONTOS INVÁLIDOS','Informe os pontos da tarefa.','📝');sfxErr();return;}
-  db.tasks.push({id:uid(),name,desc,points:pts});save();
-  $('nt-name').value='';$('nt-desc').value='';$('nt-points').value=222;
-  toast('✔ TAREFA CRIADA!',name,'📋');sfxWin();renderAdmin();
+  if(!points||points<1){toast('⚠ PONTOS INVÁLIDOS','Informe os pontos da tarefa.','📝');sfxErr();return;}
+  try{
+    await api('/api/admin/tasks',{method:'POST',body:JSON.stringify({name,desc,points,frequencyPerWeek})});
+    $('nt-name').value='';$('nt-desc').value='';$('nt-points').value=100;$('nt-freq').value=7;
+    toast('✔ TAREFA CRIADA!',name,'📋');sfxWin();renderAdmin();
+  }catch(e){toast('⚠ ERRO','Não deu pra criar a tarefa.','📝');sfxErr();}
 }
-function delTask(id){
+async function delTask(id){
   if(!confirm('Excluir esta tarefa?'))return;
-  db.tasks=db.tasks.filter(t=>t.id!==id);save();renderAdmin();
+  await api('/api/admin/tasks/'+id,{method:'DELETE'});renderAdmin();
 }
-function setStatus(id,st){
-  const s=db.submissions.find(x=>x.id===id);if(!s)return;
+async function setStatus(id,st){
   if(st==='rejected'&&!confirm('Rejeitar? Os pontos serão REMOVIDOS do saldo dele.'))return;
-  s.status=st;save();renderAdmin();
-  toast(st==='rejected'?'✖ ENVIO REJEITADO':'✔ ENVIO APROVADO',s.taskName+(st==='rejected'?' — pontos removidos':''),st==='rejected'?'🚫':'✅');
+  await api('/api/admin/submissions/'+id,{method:'PATCH',body:JSON.stringify({status:st})});
+  renderAdmin();
+  toast(st==='rejected'?'✖ ENVIO REJEITADO':'✔ ENVIO APROVADO','',st==='rejected'?'🚫':'✅');
 }
-function delSub(id){
+async function delSub(id){
   if(!confirm('Excluir este envio (e a foto)?'))return;
-  db.submissions=db.submissions.filter(s=>s.id!==id);save();renderAdmin();
+  await api('/api/admin/submissions/'+id,{method:'DELETE'});renderAdmin();
 }
 function viewPhoto(id){
-  const s=db.submissions.find(x=>x.id===id);if(!s)return;
-  $('mp-img').src=s.photo;$('modal-photo').classList.add('open');
+  $('mp-img').src='/api/photos/'+id;$('modal-photo').classList.add('open');
 }
-function saveConfig(){
-  db.config.playerName=$('cfg-name').value.trim()||'Steve';
-  const rate=parseInt($('cfg-rate').value,10);
-  if(rate>0)db.config.pointsPerReal=rate;
-  const pass=$('cfg-pass').value.trim();
-  if(pass)db.config.password=pass;
-  save();toast('💾 CONFIG SALVA!','','⚙');sfxWin();renderAdmin();
+async function saveConfig(){
+  const playerName=$('cfg-name').value.trim()||'Steve';
+  const pointsPerReal=parseInt($('cfg-rate').value,10);
+  const password=$('cfg-pass').value.trim();
+  await api('/api/admin/config',{method:'PATCH',body:JSON.stringify({playerName,pointsPerReal,password})});
+  toast('💾 CONFIG SALVA!','','⚙');sfxWin();renderAdmin();
 }
-function cashOut(){
-  const bal=balance();
-  if(bal<=0){toast('💸 SALDO ZERADO','Não há nada para pagar ainda.','🕳');sfxErr();return;}
-  if(!confirm('Confirmar pagamento de '+fmtMoney(moneyOf(bal))+' para '+db.config.playerName+'?\nO saldo de esmeraldas será zerado.'))return;
-  db.config.redeemed=earnedTotal();save();renderAdmin();
-  toast('💸 PAGAMENTO REGISTRADO!',fmtMoney(moneyOf(bal))+' pago. Saldo zerado.','💰');sfxLevel();
+async function cashOut(){
+  if(!adminData||adminData.cashoutReais<=0){toast('💸 SALDO ZERADO','Não há nada para pagar ainda.','🕳');sfxErr();return;}
+  if(!confirm('Confirmar pagamento de '+fmtMoney(adminData.cashoutReais)+' para '+adminData.config.playerName+'?\nO saldo de esmeraldas será zerado.'))return;
+  const res=await api('/api/admin/cashout',{method:'POST'});
+  toast('💸 PAGAMENTO REGISTRADO!',fmtMoney(res.paidReais)+' pago. Saldo zerado.','💰');sfxLevel();
+  renderAdmin();
 }
-function resetAll(){
-  if(!confirm('RESETAR TUDO? Apaga tarefas, fotos e pontos!'))return;
+async function resetAll(){
+  if(!confirm('Zerar todo o progresso? Apaga envios, fotos e conquistas (tarefas e senha continuam).'))return;
   if(!confirm('TEM CERTEZA MESMO? Isso não tem volta!'))return;
-  localStorage.removeItem(DB_KEY);sessionStorage.removeItem('craftAdminOK');
-  db=load();showScreen('player');toast('🗑 MUNDO RESETADO!','Um novo mundo foi gerado.','🌍');
+  await api('/api/admin/reset',{method:'POST'});
+  toast('🗑 PROGRESSO ZERADO!','Um novo ciclo começou.','🌍');
+  renderAdmin();
 }
 
 /* ==================== PARTÍCULAS DE FUNDO ==================== */
